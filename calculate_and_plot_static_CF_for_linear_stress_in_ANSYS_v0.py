@@ -179,23 +179,16 @@ def read_csv_columns(filepath):
     return data[:, 0], data[:, 1]
 
 # Using the PyQt5 dialog box instances to select CSV files
-modulus_file_path = DialogBox("Select an input CSV file for Temperature [C] vs Young's Modulus [GPa] data").get_file_path()
 yield_strength_file_path = DialogBox("Select an input CSV file for Temperature [C] vs Yield Strength [GPa] data").get_file_path()
 node_temperature_file_path = r"{file_path_CF_Temp_input_csv}"
 seqv_room_temp_file_path = r"{file_path_CF_RT_input_csv}"
 seqv_working_temp_file_path = r"{file_path_CF_WT_input_csv}"
 
 # Reading CSV files and assigning columns to variables
-Temperature_of_Modulus, Modulus = read_csv_columns(modulus_file_path)
 Temperature_of_Yield_Strength, Yield_Strength = read_csv_columns(yield_strength_file_path)
 Node_Number, Temperature_of_Node = read_csv_columns(node_temperature_file_path)
 Node_Number, SEQV_of_Node_at_Room_Temperature = read_csv_columns(seqv_room_temp_file_path)
 Node_Number, SEQV_of_Node_at_Working_Temperature = read_csv_columns(seqv_working_temp_file_path)
-
-# Function to interpolate modulus values at specific temperatures
-def get_modulus_at_temp(temperature_of_node):
-    interpolation = interp1d(Temperature_of_Modulus, Modulus, kind='linear', fill_value="extrapolate")
-    return interpolation(temperature_of_node)
 
 # Function to interpolate yield strength values at specific temperatures
 def get_yield_strength_at_temp(temperature_of_node):
@@ -208,23 +201,46 @@ Room_Temperature = room_temperature_form.get_value()
 
 # Calculating yield strength at room temperature
 Yield_Strength_at_Room_Temperature = get_yield_strength_at_temp(np.array([Room_Temperature]))
+# Above is a single element array, expand so that it becomes the same size as Node_Number array
+Yield_Strength_at_Room_Temperature = np.full(len(Node_Number), Yield_Strength_at_Room_Temperature[0])
 
 # Function to calculate compensation factor
-def calculate_compensation_factor(modulus_at_temp, yield_strength_at_work_temp, seqv_at_work_temp, seqv_at_room_temp):
-    reserve_factor = yield_strength_at_work_temp / np.abs(seqv_at_work_temp)
-    target_seqv_at_room_temp = Yield_Strength_at_Room_Temperature / reserve_factor
+def calculate_compensation_factor(yield_strength_at_work_temp, seqv_at_work_temp,Yield_Strength_at_Room_Temperature, seqv_at_room_temp):
+    reserve_factor_wt = yield_strength_at_work_temp / np.abs(seqv_at_work_temp)
+    target_seqv_at_room_temp = Yield_Strength_at_Room_Temperature / reserve_factor_wt
     static_compensation_factor = target_seqv_at_room_temp / seqv_at_room_temp
-    return static_compensation_factor
+    return reserve_factor_wt, target_seqv_at_room_temp, static_compensation_factor
 
 # Assuming all Node_Number arrays are the same length for simplicity
-Modulus_at_Temperature_of_Node = get_modulus_at_temp(Temperature_of_Node)
 Yield_Strength_at_Working_Temperature_of_Node = get_yield_strength_at_temp(Temperature_of_Node)
 
 # Calculate Static_Compensation_Factor_for_Target_SEQV
-Static_Compensation_Factor_for_Target_SEQV = calculate_compensation_factor(Modulus_at_Temperature_of_Node, Yield_Strength_at_Working_Temperature_of_Node, SEQV_of_Node_at_Working_Temperature, SEQV_of_Node_at_Room_Temperature)
+reserve_factor_wt, \
+target_seqv_at_room_temp, \
+Static_Compensation_Factor_for_Target_SEQV = \
+calculate_compensation_factor(Yield_Strength_at_Working_Temperature_of_Node, 
+                              SEQV_of_Node_at_Working_Temperature, 
+                              Yield_Strength_at_Room_Temperature, 
+                              SEQV_of_Node_at_Room_Temperature)
+
+#Debug
+print("Node_Number:" + str(len(Node_Number)))
+print("SEQV_of_Node_at_Working_Temperature:" + str(len(SEQV_of_Node_at_Working_Temperature)))
+print("reserve_factor_wt:" + str(len(reserve_factor_wt)))
+print("Yield_Strength_at_Room_Temperature:" + str(len(Yield_Strength_at_Room_Temperature)))
+print("target_seqv_at_room_temp:" + str(len(target_seqv_at_room_temp)))
+print("SEQV_of_Node_at_Room_Temperature:" + str(len(SEQV_of_Node_at_Room_Temperature)))
+print("Static_Compensation_Factor_for_Target_SEQV:" + str(len(Static_Compensation_Factor_for_Target_SEQV)))
 
 # Combine the two arrays column-wise
-data_to_save = np.column_stack((Node_Number, Static_Compensation_Factor_for_Target_SEQV))
+data_to_save = np.column_stack((Node_Number, 
+                                Yield_Strength_at_Working_Temperature_of_Node, 
+                                SEQV_of_Node_at_Working_Temperature, 
+                                reserve_factor_wt,
+                                Yield_Strength_at_Room_Temperature,
+                                target_seqv_at_room_temp,
+                                SEQV_of_Node_at_Room_Temperature,
+                                Static_Compensation_Factor_for_Target_SEQV))
 
 # Specify output csv directory
 solver_files_directory_CF_WT_input = r"{solver_files_directory_CF_WT_input}"
@@ -233,7 +249,8 @@ solver_files_directory_CF_WT_input = r"{solver_files_directory_CF_WT_input}"
 output_filepath_of_static_CF_csv = os.path.join(solver_files_directory_CF_WT_input, 'NodeID_vs_Static_CF_Result.csv')
 
 # Save the combined data to a CSV file
-np.savetxt(output_filepath_of_static_CF_csv, data_to_save, delimiter=',', header='Node_Number,Static_Compensation_Factor', comments='')
+np.savetxt(output_filepath_of_static_CF_csv, data_to_save, delimiter=',', 
+           header='Node_Number,Yield_Strength_WT,SEQV_WT,Reserve_Factor_WT,Yield_Strength_RT,Target_SEQV_RT,SEQV_RT,Static_Compensation_Factor', comments='')
 print(output_filepath_of_static_CF_csv)
 """.format(solver_files_directory_CF_WT_input=solver_files_directory_CF_WT_input[:-1],
            file_path_CF_Temp_input_csv=file_path_CF_Temp_input_csv,
