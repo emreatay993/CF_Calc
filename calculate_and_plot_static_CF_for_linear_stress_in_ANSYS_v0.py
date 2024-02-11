@@ -83,15 +83,17 @@ if len(list_of_obj_of_CF_RT_input)>1:
     exit()
     
 if len(list_of_obj_of_CF_Temp_input)==0:
-    error_message = r"""A  user defined result  which contains "CF_Temp" prefix/suffix in its name is not defined. This is required for reading the "Node Number vs Temperature" data. The program will attempt to create and evaluate it automatically in the tree. If it is not created automatically after this error message, please create this object manually in the tree and try again."""
-    msg = Ansys.Mechanical.Application.Message(error_message, MessageSeverityType.Error)
+    error_message = r"""A  user defined result  which contains "CF_Temp" prefix/suffix in its name is not defined. The program will attempt to create and evaluate it automatically in the tree. This is required for reading the "Node Number vs Temperature" data. If it is not created automatically after this error message, please create this object manually in the tree and try again."""
+    msg = Ansys.Mechanical.Application.Message(error_message, MessageSeverityType.Warning)
     ExtAPI.Application.Messages.Add(msg)
     solution_object_of_CF_WT_result = list_of_obj_of_CF_WT_input[0].Parent
     object_of_CF_Temp_result_created = solution_object_of_CF_WT_result.AddUserDefinedResult()
     object_of_CF_Temp_result_created.Name = "Compensated_Part_CF_Temp"
     object_of_CF_Temp_result_created.Expression = "BFE"
+    object_of_CF_Temp_result_created.ScopingMethod=GeometryDefineByType.Component
+    object_of_CF_Temp_result_created.AverageAcrossBodies = True
+    object_of_CF_Temp_result_created.Location = obj_of_NS_parts_to_be_compensated[0]
     object_of_CF_Temp_result_created.Parent.EvaluateAllResults()
-    exit()
 
 if len(list_of_obj_of_CF_Temp_input)>1:
     error_message = r"""There cannot be more than one user defined result with "CF_Temp" prefix/suffix in its name in the tree."""
