@@ -12,11 +12,13 @@ import os
 # Get all possible input data types from tree (it is EquivalentStress in this version of this code by default)
 list_of_obj_of_all_result_objects = DataModel.Project.GetChildren(DataModelObjectCategory.Result,True)
 
-# Get the temperature distribution of the part vs NodeID for compensation factor calculation
+list_of_obj_of_all_user_result_objects = DataModel.Project.GetChildren(DataModelObjectCategory.UserDefinedResult,True)
+
+# Get the temperature distribution of the part vs NodeID for compensation factor calculation (from a user result)
 list_of_obj_of_CF_Temp_input = [
-    list_of_obj_of_all_result_objects[i]
-    for i in range(len(list_of_obj_of_all_result_objects))
-    if list_of_obj_of_all_result_objects[i].Name.Contains("CF_Temp")]
+    list_of_obj_of_all_user_result_objects[i]
+    for i in range(len(list_of_obj_of_all_user_result_objects))
+    if list_of_obj_of_all_user_result_objects[i].Name.Contains("CF_Temp")]
 
 # Get input data at working temperature for compensation factor calculation
 list_of_obj_of_CF_WT_input = [
@@ -50,18 +52,6 @@ if obj_of_NS_parts_to_be_compensated[0].ObjectState.ToString() != 'FullyDefined'
 # endregion
 
 # region Error Handling for Tree Objects, Input Data
-if len(list_of_obj_of_CF_Temp_input)==0:
-    error_message = r"""A  contour result  which contains "CF_Temp" prefix/suffix in its name is not defined. This is required for reading the "Node Number vs Temperature" data. Please create this object in the tree and try again."""
-    msg = Ansys.Mechanical.Application.Message(error_message, MessageSeverityType.Error)
-    ExtAPI.Application.Messages.Add(msg)
-    exit()
-
-if len(list_of_obj_of_CF_Temp_input)>1:
-    error_message = r"""There cannot be more than one contour with "CF_Temp" prefix/suffix in its name in the tree."""
-    msg = Ansys.Mechanical.Application.Message(error_message, MessageSeverityType.Error)
-    ExtAPI.Application.Messages.Add(msg)
-    exit()
-
 if len(list_of_obj_of_CF_WT_input)==0 and len(list_of_obj_of_CF_RT_input)==0:
     error_message = r"""Contour results  which contain "CF_WT" and "CF_RT" prefix/suffix in their name are not defined. This is required for reading both "Node Number vs Value at Room Temperature" and "Node Number vs Value at Working Temperature" data. Please create both these objects in the tree and try again."""
     msg = Ansys.Mechanical.Application.Message(error_message, MessageSeverityType.Error)
@@ -88,6 +78,23 @@ if len(list_of_obj_of_CF_WT_input)>1:
     
 if len(list_of_obj_of_CF_RT_input)>1:
     error_message = r"""There cannot be more than one contour with "CF_RT" prefix/suffix in its name in the tree."""
+    msg = Ansys.Mechanical.Application.Message(error_message, MessageSeverityType.Error)
+    ExtAPI.Application.Messages.Add(msg)
+    exit()
+    
+if len(list_of_obj_of_CF_Temp_input)==0:
+    error_message = r"""A  user defined result  which contains "CF_Temp" prefix/suffix in its name is not defined. This is required for reading the "Node Number vs Temperature" data. The program will attempt to create and evaluate it automatically in the tree. If it is not created automatically after this error message, please create this object manually in the tree and try again."""
+    msg = Ansys.Mechanical.Application.Message(error_message, MessageSeverityType.Error)
+    ExtAPI.Application.Messages.Add(msg)
+    solution_object_of_CF_WT_result = list_of_obj_of_CF_WT_input[0].Parent
+    object_of_CF_Temp_result_created = solution_object_of_CF_WT_result.AddUserDefinedResult()
+    object_of_CF_Temp_result_created.Name = "Compensated_Part_CF_Temp"
+    object_of_CF_Temp_result_created.Expression = "BFE"
+    object_of_CF_Temp_result_created.Parent.EvaluateAllResults()
+    exit()
+
+if len(list_of_obj_of_CF_Temp_input)>1:
+    error_message = r"""There cannot be more than one user defined result with "CF_Temp" prefix/suffix in its name in the tree."""
     msg = Ansys.Mechanical.Application.Message(error_message, MessageSeverityType.Error)
     ExtAPI.Application.Messages.Add(msg)
     exit()
