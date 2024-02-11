@@ -259,3 +259,6 @@ contour_object_of_Static_CF_result.Properties[4].InternalValue = 'Node'
 contour_object_of_Static_CF_result.Properties[5].InternalValue = 'No'
 contour_object_of_Static_CF_result.Suppressed = 1
 contour_object_of_Static_CF_result.Suppressed = 0
+
+solution_object_of_contour_object_of_Static_CF_result = obj_of_CF_WT_input_data.Parent
+solution_object_of_contour_object_of_Static_CF_result.EvaluateAllResults()
