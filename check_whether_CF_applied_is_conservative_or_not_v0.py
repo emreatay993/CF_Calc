@@ -277,7 +277,7 @@ output_filepath_of_static_CF_csv = os.path.join(solver_files_directory_CF_COMP_i
 
 # Visualize Static CF results using CSVPlot
 contour_object_of_Static_CF_result = obj_of_CF_COMP_input_data.Parent.Parent.CreateResultObject("csvPlot", "CSV Plot")
-contour_object_of_Static_CF_result.Caption = "NodeID_vs_Static_CF_Result.csv"
+contour_object_of_Static_CF_result.Caption = "NodeID_vs_CF_COMP_Result.csv"
 contour_object_of_Static_CF_result.Properties[0].Properties[0].InternalValue = 'ID_NamedSelection'
 contour_object_of_Static_CF_result.Properties[0].Properties[0].Properties[1].InternalValue = obj_of_NS_parts_to_be_compensated[0].ObjectId.ToString()
 contour_object_of_Static_CF_result.Properties[1].InternalValue = output_filepath_of_static_CF_csv
